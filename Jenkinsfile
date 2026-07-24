@@ -13,9 +13,8 @@ pipeline {
 
     environment {
         AWS_REGION = 'ap-south-1'
-        AWS_ACCOUNT_ID = 'YOUR_12_DIGIT_ACCOUNT_ID'
         ECR_REPOSITORY = 'springboot-aws-app'
-        APP_HOST = 'YOUR_APP_PRIVATE_IP'
+        APP_HOST = '172.31.11.120'
     }
 
     stages {
@@ -34,6 +33,13 @@ pipeline {
         stage('Build Docker image') {
             steps {
                 script {
+                    env.AWS_ACCOUNT_ID = sh(
+                        script: 'aws sts get-caller-identity --query Account --output text',
+                        returnStdout: true
+                    ).trim()
+                    if (!(env.AWS_ACCOUNT_ID ==~ /\d{12}/)) {
+                        error('Could not obtain the 12-digit AWS account ID from the Jenkins EC2 IAM role')
+                    }
                     env.IMAGE_TAG = sh(
                         script: 'git rev-parse --short HEAD',
                         returnStdout: true
